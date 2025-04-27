@@ -18,7 +18,22 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
   File? _selectedImage;
+  String? _selectedCategory;
   bool _isUploading = false;
+
+  final List<String> _categories = [
+    'Chinese',
+    'Beverages',
+    'Snacks',
+    'South Indian',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Debug: Confirm categories are initialized
+    print('Categories initialized: $_categories');
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -52,6 +67,12 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       );
       return;
     }
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a category')));
+      return;
+    }
 
     setState(() {
       _isUploading = true;
@@ -73,6 +94,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
         'name': _nameController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
         'imageUrl': imageUrl,
+        'category': _selectedCategory,
         'createdAt': FieldValue.serverTimestamp(),
       };
       print('Food data: $foodData');
@@ -88,6 +110,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
       _priceController.clear();
       setState(() {
         _selectedImage = null;
+        _selectedCategory = null;
         _isUploading = false;
       });
     } catch (e) {
@@ -143,10 +166,6 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                     ),
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 10.0,
-                      horizontal: 16.0,
-                    ),
                   ),
                   style: GoogleFonts.poppins(fontSize: 14),
                   validator: (value) {
@@ -167,10 +186,6 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                     ),
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 10.0,
-                      horizontal: 16.0,
-                    ),
                   ),
                   style: GoogleFonts.poppins(fontSize: 14),
                   keyboardType: TextInputType.number,
@@ -181,6 +196,53 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
                     if (double.tryParse(value) == null ||
                         double.parse(value) <= 0) {
                       return 'Please enter a valid price';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    labelStyle: GoogleFonts.poppins(fontSize: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+                  hint: Text(
+                    'Select a category',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  dropdownColor: Colors.white,
+                  items:
+                      _categories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(
+                            category,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                  onChanged: (value) {
+                    print('Selected category: $value');
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Please select a category';
                     }
                     return null;
                   },
