@@ -6,6 +6,26 @@ import 'package:google_fonts/google_fonts.dart';
 class MenuScreen extends StatelessWidget {
   const MenuScreen({Key? key}) : super(key: key);
 
+  // Function to toggle stock status
+  Future<void> _toggleStockStatus(String itemId, bool currentStatus) async {
+    try {
+      await FirebaseFirestore.instance.collection('foods').doc(itemId).update({
+        'isInStock': !currentStatus,
+      });
+    } catch (e) {
+      print('Error toggling stock status: $e');
+    }
+  }
+
+  // Function to delete food item
+  Future<void> _deleteFoodItem(String itemId) async {
+    try {
+      await FirebaseFirestore.instance.collection('foods').doc(itemId).delete();
+    } catch (e) {
+      print('Error deleting food item: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -54,13 +74,14 @@ class MenuScreen extends StatelessWidget {
                     foodSnapshot.data!.docs.map((doc) {
                       final data = doc.data();
                       return {
-                        'id': doc.id, // Firestore document ID (String)
+                        'id': doc.id,
                         'name': data['name']?.toString() ?? 'Unknown',
                         'price':
                             (data['price'] is num)
                                 ? (data['price'] as num).toDouble()
                                 : 0.0,
                         'imageUrl': data['imageUrl']?.toString(),
+                        'isInStock': data['isInStock'] as bool? ?? true,
                       };
                     }).toList();
 
@@ -108,6 +129,8 @@ class MenuScreen extends StatelessWidget {
                         final item = foodItems[index];
                         final totalQuantity =
                             totalQuantities[item['id'] as String] ?? 0;
+                        final isInStock = item['isInStock'] as bool;
+
                         return Card(
                           child: ListTile(
                             contentPadding: const EdgeInsets.all(16),
@@ -117,11 +140,54 @@ class MenuScreen extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            subtitle: Text(
-                              '${(item['price'] as double).toStringAsFixed(2)} RITZ',
-                              style: GoogleFonts.poppins(
-                                color: Colors.grey[600],
-                              ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${(item['price'] as double).toStringAsFixed(2)} RITZ',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed:
+                                          () => _toggleStockStatus(
+                                            item['id'] as String,
+                                            isInStock,
+                                          ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            isInStock
+                                                ? Colors.red[400]
+                                                : Colors.green[400],
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: Text(
+                                        isInStock ? 'Out of Stock' : 'In Stock',
+                                        style: GoogleFonts.poppins(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton(
+                                      onPressed:
+                                          () => _deleteFoodItem(
+                                            item['id'] as String,
+                                          ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.grey[400],
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: Text(
+                                        'Remove',
+                                        style: GoogleFonts.poppins(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                             trailing: Text(
                               'To Cook: $totalQuantity',
